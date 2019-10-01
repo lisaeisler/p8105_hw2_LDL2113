@@ -13,27 +13,18 @@ library(tidyverse)
 
 ## Homework 2, Problem 1
 
+Read and clean the Mr. Trash Wheel sheet:
+
+specify the sheet in the Excel file and to omit non-data entries (rows with notes / figures; columns containing notes) using arguments in read_excel
+use reasonable variable names
+omit rows that do not include dumpster-specific data
+round the number of sports balls to the nearest integer and converts the result to an integer variable (using as.integer)
+
 ```{r}
 healthy_harbor = 
   readxl::read_excel("./healthy_harbor.xlsx", sheet = 1, range = "A2:N338") %>%
   janitor::clean_names() %>%
+  mutate(
+    sports_balls = as.integer(sports_balls)) %>%
   drop_na()
 ```
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
