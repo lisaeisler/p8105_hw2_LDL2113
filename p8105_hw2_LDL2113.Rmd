@@ -20,7 +20,7 @@ mr_trash_wheel =
   readxl::read_excel("./healthy_harbor.xlsx", sheet = 1, range = "A2:N338") %>%
   janitor::clean_names() %>%
   mutate(
-    sports_balls = as.integer(sports_balls)) %>%
+    sports_balls = as.integer(round(sports_balls))) %>%
   drop_na()
 ```
 
@@ -45,6 +45,74 @@ precipitation_2017_2018 =
   bind_rows(precipitation_2017, precipitation_2018) %>%
   mutate(
     "month" = month.name[as.integer(month)])
+
+median_2017 = filter(mr_trash_wheel, year == 2017)
+sum_2018 = filter(precipitation_2017_2018, year == 2018)
 ```
 
-For each, omit rows without precipitation data and add a variable year. Next, combine precipitation datasets and convert month to a character variable (the variable month.name is built into R and should be useful).
+The Mr Trash Wheel data has `r nrow(mr_trash_wheel)` observations. The Precipitation data has `r nrow(precipitation_2017_2018)` observations. Key variables for the Mr. Trash Wheel sheet include the weight (tons), volume (cubic yards), number of specific items (e.g. plastic bottles and grocery bags). The median number of sports balls per dumpster in 2017 was `r median(pull(median_2017, sports_balls))` balls. The key variables for the precipitation sheet include the total amount of precipitation (inches) per month, the mean of which is `r mean(pull(precipitation_2017_2018, total))` inches. The total precipitation in 2018 was `r sum(pull(sum_2018, total))` inches.
+
+## Problem 2
+
+*First, clean the data in pols-month.csv.*
+
+```{r, message=FALSE}
+pols_month = read_csv(file = "./pols-month.csv") %>%
+  janitor::clean_names() %>%
+  separate(col = mon, into = c("year", "month", "day"), sep = "-") %>%
+  mutate(month = month.name[as.numeric(month)]) %>% 
+  mutate(president = if_else(prez_gop == 1, "gop", "dem")) %>% 
+  select(-prez_gop, -prez_dem, -day)
+```
+
+*Second, clean the data in snap-csv.*
+
+```{r, message=FALSE}
+snp_month = read_csv(file = "./snp.csv") %>% 
+  janitor::clean_names() %>%
+  separate(col = date, into = c("month", "day", "year"), sep = "/") %>% 
+  select("year", "month", "day", "close") %>% 
+  mutate(month = month.name[as.numeric(month)]) %>% 
+  select(-day) %>% 
+  rename(snp_close = close)
+```
+
+
+*Third, clean data from unemployment.csv.*
+
+```{r, message=FALSE}
+unemployment_month = read_csv(file = "./unemployment.csv") %>% 
+  janitor::clean_names() %>% 
+  mutate(year = as.character(year)) %>%
+  pivot_longer(
+    jan:dec,
+    names_to = "month",
+    values_to = "percent_unempl") %>% 
+  mutate(month = case_when(
+    month == "jan" ~ "January",
+    month == "feb" ~ "February",
+    month == "mar" ~ "March",
+    month == "apr" ~ "April",
+    month == "may" ~ "May",
+    month == "jun" ~ "June",
+    month == "jul" ~ "July",
+    month == "aug" ~ "August",
+    month == "sep" ~ "September",
+    month == "oct" ~ "October",
+    month == "nov" ~ "November",
+    month == "dec" ~ "December"
+  ))
+```
+
+*Last, join the datasets by merging snp into pols, and merging unemployment into the result.*
+
+```{r}
+pols_snp = 
+  left_join(pols_month, snp_month, by = c("year", "month"))
+
+pols_snp_unemployment = 
+  left_join(pols_snp, unemployment_month, by = c("year", "month"))
+```
+
+The pols_snp_unemployment dataset was created by merging the tidied pols_month, snp_month, and unemployment_month datasets by dates. The dataset pols_month had counts for the number of national politicians of each party  (by month and year) from January 1947 to June 2015, noting whether the president was GOP or DEM. The snp dataset includes the closing values of the S&P stock index by date from January 1950 to July 2015. The unemployment dataset contains the percent unemployment for each month and year from January 1948 to December 2015. The resulting merged dataset contains 11 variables and 822 observations. SNP data is missing between 1947-1949, while unemployment data is missing for 1947. The data is otherwise complete through June 2015.
+
