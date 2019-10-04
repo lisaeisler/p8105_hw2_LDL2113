@@ -1,7 +1,7 @@
 ---
-title: "p8105_hw2_LDL2113"
+title: "Homework 2"
 author: "Lisa Eisler"
-date: "9/30/2019"
+date: "10/4/2019"
 output: github_document
 ---
 
@@ -13,7 +13,7 @@ library(tidyverse)
 
 ## Problem 1
 
-*Read and clean the Mr. Trash Wheel sheet:*
+*Read and clean the Mr. Trash Wheel sheet*
 
 ```{r}
 mr_trash_wheel = 
@@ -114,5 +114,97 @@ pols_snp_unemployment =
   left_join(pols_snp, unemployment_month, by = c("year", "month"))
 ```
 
-The pols_snp_unemployment dataset was created by merging the tidied pols_month, snp_month, and unemployment_month datasets by dates. The dataset pols_month had counts for the number of national politicians of each party  (by month and year) from January 1947 to June 2015, noting whether the president was GOP or DEM. The snp dataset includes the closing values of the S&P stock index by date from January 1950 to July 2015. The unemployment dataset contains the percent unemployment for each month and year from January 1948 to December 2015. The resulting merged dataset contains 11 variables and 822 observations. SNP data is missing between 1947-1949, while unemployment data is missing for 1947. The data is otherwise complete through June 2015.
+The pols_snp_unemployment dataset was created by merging the tidied pols_month, snp_month, and unemployment_month datasets by dates. The dataset pols_month had counts for the number of national politicians of each party  (by month and year) from January 1947 to June 2015, noting whether the president was GOP or DEM. The snp dataset includes the closing values of the S&P stock index by date from January 1950 to July 2015. The unemployment dataset contains the percent unemployment for each month and year from January 1948 to December 2015. The resulting merged dataset contains 11 variables and `r nrow(pols_snp_unemployment)` observations. SNP data is missing between 1947-1949, while unemployment data is missing for 1947. The data is otherwise complete through June 2015.
+
+## Problem 3
+
+*Read and clean the Popular Baby Names datasheet*
+
+```{r message=FALSE}
+popular_baby_names = read.csv(file = "./Popular_Baby_Names.csv") %>% 
+  janitor::clean_names() %>% 
+  rename(name = child_s_first_name) %>% 
+  rename(year = year_of_birth) %>% 
+  mutate(name = tolower(name)) %>% 
+  mutate(gender = tolower(gender)) %>% 
+  mutate(ethnicity = tolower(ethnicity)) %>% 
+  mutate(ethnicity = case_when(
+    ethnicity == "asian and pacific islander" ~ "Asian and Pacific Islander",
+    ethnicity == "asian and paci" ~ "Asian and Pacific Islander",
+    ethnicity == "black non hispanic" ~ "Black Non-Hispanic",
+    ethnicity == "black non hisp" ~ "Black Non-Hispanic",
+    ethnicity == "white non hispanic" ~ "White Non-Hispanic",
+    ethnicity == "white non hisp" ~ "White Non-Hispanic",
+    ethnicity == "hispanic" ~ "Hispanic"
+  )) %>% 
+
+  distinct()
+```
+
+*Create a table showing the rank in popularity of the name "Olivia" over time*
+
+```{r message=FALSE}
+olivia_name = popular_baby_names %>% 
+  select(year, ethnicity, name, rank) %>% 
+  filter(name == "olivia")
+```
+
+This table is not reader-friendly. I will provide rankings over time for each ethnicity category. 
+
+```{r message=FALSE}
+olivia_rank =
+  pivot_wider(
+    olivia_name,
+    names_from = "year",
+    values_from = "rank"
+  ) %>% 
+
+  select(-name) %>% 
+
+  select ("ethnicity", "2011", "2012", "2013", "2014", "2015", "2016")
+```
+
+*Produce a similar table showing the most popular name among male children over time*
+
+```{r message=FALSE}
+boy_names = popular_baby_names %>% 
+  select(year, name, gender, ethnicity, rank) %>% 
+  filter(gender == "male")
+```
+
+Now manipulate to aid visualization
+
+```{r message=FALSE}
+boy_names_rank =
+  pivot_wider(
+    boy_names,
+    names_from = "year",
+    values_from = "rank"
+  ) %>% 
+
+  select(-gender) %>% 
+
+  select ("name", "ethnicity", "2011", "2012", "2013", "2014", "2015", "2016")
+```
+
+*for male, white non-hispanic children born in 2016, produce a scatter plot showing the number of children with a name (y axis) against the rank in popularity of that name (x axis).*
+
+```{r message=FALSE}
+boy_wnh_2016 = popular_baby_names %>% 
+  filter(
+    year == "2016",
+    gender == "male",
+    ethnicity == "White Non-Hispanic"
+         ) %>% 
+  select(-year, -gender, -ethnicity)
+
+ggplot(boy_wnh_2016, aes(x = rank, y = count)) + 
+  geom_point() +
+labs(
+    title = "Rankings of Baby Names with Corresponding Counts",
+    x = "Overall Rank (out of 100)",
+    y = "Count (babies)"
+  )
+
+```
 
